@@ -6,7 +6,7 @@ toolchain go1.25.3
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/apernet/hysteria/core/v2 v2.6.5
+	github.com/apernet/hysteria/core/v2 v2.7.0
 	github.com/apernet/hysteria/extras/v2 v2.7.0
 	github.com/bitly/go-simplejson v0.5.1
 	github.com/deckarep/golang-set v1.8.0
