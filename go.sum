@@ -699,10 +699,10 @@ github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7D
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
 github.com/apernet/hysteria/core/v2 v2.6.5 h1:auqEyR9BXsY+PnYt6yXaUKK3YkIvwTTmYqO/P5XHyMw=
 github.com/apernet/hysteria/core/v2 v2.6.5/go.mod h1:fN9iNb30GpkeMZgEHKDwwwSfAyhR4YLHHIbmfTBRiM8=
-github.com/apernet/hysteria/extras/v2 v2.6.5 h1:JjH7m0IkuKQmy6CtdvdT9HB0M+SrLz/kRZEk6FBt4lU=
-github.com/apernet/hysteria/extras/v2 v2.6.5/go.mod h1:aMpx0CxSDHHdaNFvx/I/YZ1QZbcfZujyLZxv5aBUW+A=
-github.com/apernet/quic-go v0.54.1-0.20251024023933-5e0818a71079 h1:WgFl2esvC7FnVhhBvA+BJUgxyheiTAhJ4CIbRlaK22I=
-github.com/apernet/quic-go v0.54.1-0.20251024023933-5e0818a71079/go.mod h1:Y4cCWi64O51TRUKDPy0ShA2/pevlWiWJJnlNo2fO2ds=
+github.com/apernet/hysteria/extras/v2 v2.7.0 h1:WlJFDLy6pnTUBndcisZkcxdEQ+RXKiO2gubxZZ73E3c=
+github.com/apernet/hysteria/extras/v2 v2.7.0/go.mod h1:uiJxP+zdcb9X6x6zvL27yMaj6371YIv02Bw6PUF8ldY=
+github.com/apernet/quic-go v0.57.2-0.20260111184307-eec823306178 h1:bSq8n+gX4oO/qnM3MKf4kroW75n+phO9Qp6nigJKZ1E=
+github.com/apernet/quic-go v0.57.2-0.20260111184307-eec823306178/go.mod h1:N1WIjPphkqs4efXWuyDNQ6OjjIK04vM3h+bEgwV+eVU=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-metrics v0.4.0/go.mod h1:E6amYzXo6aW1tqzoZGT755KkbgrJsSdpwZ+3JqfkOG4=
