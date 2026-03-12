@@ -22,6 +22,7 @@ type serverConfig struct {
 	CongestionControl     string   `json:"congestion_control"`
 	ZeroRTTHandshake      bool     `json:"zero_rtt_handshake"`
 	Heartbeat             string   `json:"heartbeat"`
+	AuthTimeout           string   `json:"auth_timeout"`
 	PaddingScheme         []string `json:"padding_scheme"`
 	BaseConfig            struct {
 		PushInterval int `json:"push_interval"`

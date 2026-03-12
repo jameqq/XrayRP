@@ -310,25 +310,36 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 	} else {
 		var deleted, added []api.UserInfo
 		if usersChanged {
-			deleted, added = compareUserList(c.userList, newUserInfo)
-			if len(deleted) > 0 {
-				deletedEmail := make([]string, len(deleted))
-				for i, u := range deleted {
-					deletedEmail[i] = fmt.Sprintf("%s|%s|%d", c.Tag, u.Email, u.UID)
-				}
-				err := c.removeUsers(deletedEmail, c.Tag)
-				if err != nil {
+			// Socks/HTTP don't support incremental user changes — full rebuild
+			if c.nodeInfo.NodeType == "Socks" || c.nodeInfo.NodeType == "HTTP" {
+				if err := c.rebuildInboundWithUsers(newUserInfo, c.nodeInfo); err != nil {
 					c.logger.Print(err)
 				}
-			}
-			if len(added) > 0 {
-				err = c.addNewUser(&added, c.nodeInfo)
-				if err != nil {
+				if err := c.AddInboundLimiter(c.Tag, c.nodeInfo.SpeedLimit, newUserInfo, c.config.GlobalDeviceLimitConfig); err != nil {
 					c.logger.Print(err)
 				}
-				// Update Limiter
-				if err := c.UpdateInboundLimiter(c.Tag, &added); err != nil {
-					c.logger.Print(err)
+				deleted, added = compareUserList(c.userList, newUserInfo)
+			} else {
+				deleted, added = compareUserList(c.userList, newUserInfo)
+				if len(deleted) > 0 {
+					deletedEmail := make([]string, len(deleted))
+					for i, u := range deleted {
+						deletedEmail[i] = fmt.Sprintf("%s|%s|%d", c.Tag, u.Email, u.UID)
+					}
+					err := c.removeUsers(deletedEmail, c.Tag)
+					if err != nil {
+						c.logger.Print(err)
+					}
+				}
+				if len(added) > 0 {
+					err = c.addNewUser(&added, c.nodeInfo)
+					if err != nil {
+						c.logger.Print(err)
+					}
+					// Update Limiter
+					if err := c.UpdateInboundLimiter(c.Tag, &added); err != nil {
+						c.logger.Print(err)
+					}
 				}
 			}
 		}
@@ -351,6 +362,17 @@ func (c *Controller) removeOldTag(oldTag string) (err error) {
 }
 
 func (c *Controller) addNewTag(newNodeInfo *api.NodeInfo) (err error) {
+	// Socks/HTTP inbounds are built with users embedded (no UserManager support).
+	// Skip here — the inbound will be created by rebuildInboundWithUsers() in addNewUser().
+	if newNodeInfo.NodeType == "Socks" || newNodeInfo.NodeType == "HTTP" {
+		// Still need the outbound for routing
+		outBoundConfig, err := OutboundBuilder(c.config, newNodeInfo, c.Tag)
+		if err != nil {
+			return err
+		}
+		return c.addOutbound(outBoundConfig)
+	}
+
 	if newNodeInfo.NodeType != "Shadowsocks-Plugin" {
 		inboundConfig, err := InboundBuilder(c.config, newNodeInfo, c.Tag)
 		if err != nil {
@@ -430,7 +452,32 @@ func (c *Controller) addInboundForSSPlugin(newNodeInfo api.NodeInfo) (err error)
 	return nil
 }
 
+// rebuildInboundWithUsers rebuilds the socks/http inbound with all users embedded.
+// This is needed because socks/http inbounds don't support proxy.UserManager.
+func (c *Controller) rebuildInboundWithUsers(userInfo *[]api.UserInfo, nodeInfo *api.NodeInfo) error {
+	// Remove existing inbound if present (ignore errors for first-time setup)
+	_ = c.removeInbound(c.Tag)
+
+	// Build inbound with all users
+	inboundConfig, err := InboundBuilderWithUsers(c.config, nodeInfo, c.Tag, userInfo)
+	if err != nil {
+		return err
+	}
+	err = c.addInbound(inboundConfig)
+	if err != nil {
+		return err
+	}
+
+	c.logger.Printf("Rebuilt %s inbound with %d users", nodeInfo.NodeType, len(*userInfo))
+	return nil
+}
+
 func (c *Controller) addNewUser(userInfo *[]api.UserInfo, nodeInfo *api.NodeInfo) (err error) {
+	// Socks/HTTP don't support proxy.UserManager — rebuild entire inbound with users embedded
+	if nodeInfo.NodeType == "Socks" || nodeInfo.NodeType == "HTTP" {
+		return c.rebuildInboundWithUsers(userInfo, nodeInfo)
+	}
+
 	users := make([]*protocol.User, 0)
 	switch nodeInfo.NodeType {
 	case "V2ray", "Vmess", "Vless":
@@ -643,6 +690,10 @@ func (c *Controller) buildNodeTag() string {
 		base = "Vmess"
 	case "shadowsocks":
 		base = "Shadowsocks"
+	case "socks":
+		base = "Socks"
+	case "http":
+		base = "HTTP"
 	}
 
 	// Include NodeID to avoid cross-node mixing when multiple logical nodes share

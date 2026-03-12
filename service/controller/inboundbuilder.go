@@ -19,6 +19,105 @@ import (
 	"github.com/Mtoly/XrayRP/common/mylego"
 )
 
+// InboundBuilderWithUsers builds an Inbound config for socks/http protocols with all users
+// embedded in the protocol config. These protocols don't support xray-core's proxy.UserManager
+// interface, so users must be included at build time.
+func InboundBuilderWithUsers(config *Config, nodeInfo *api.NodeInfo, tag string, userInfo *[]api.UserInfo) (*core.InboundHandlerConfig, error) {
+	inboundDetourConfig := &conf.InboundDetourConfig{}
+	if config.ListenIP != "" {
+		ipAddress := net.ParseAddress(config.ListenIP)
+		inboundDetourConfig.ListenOn = &conf.Address{Address: ipAddress}
+	}
+	portList := &conf.PortList{
+		Range: []conf.PortRange{{From: nodeInfo.Port, To: nodeInfo.Port}},
+	}
+	inboundDetourConfig.PortList = portList
+	inboundDetourConfig.Tag = tag
+
+	sniffingConfig := &conf.SniffingConfig{
+		Enabled:      true,
+		DestOverride: &conf.StringList{"http", "tls", "quic", "fakedns"},
+	}
+	if config.DisableSniffing {
+		sniffingConfig.Enabled = false
+	}
+	inboundDetourConfig.SniffingConfig = sniffingConfig
+
+	var proxySetting any
+	var protocol string
+
+	switch nodeInfo.NodeType {
+	case "Socks":
+		protocol = "socks"
+		accounts := make([]*conf.SocksAccount, 0, len(*userInfo))
+		for _, u := range *userInfo {
+			if u.UUID == "" {
+				continue
+			}
+			accounts = append(accounts, &conf.SocksAccount{
+				Username: u.UUID,
+				Password: u.UUID,
+			})
+		}
+		proxySetting = &conf.SocksServerConfig{
+			AuthMethod: "password",
+			Accounts:   accounts,
+			UDP:        true,
+		}
+	case "HTTP":
+		protocol = "http"
+		accounts := make([]*conf.HTTPAccount, 0, len(*userInfo))
+		for _, u := range *userInfo {
+			if u.UUID == "" {
+				continue
+			}
+			accounts = append(accounts, &conf.HTTPAccount{
+				Username: u.UUID,
+				Password: u.UUID,
+			})
+		}
+		proxySetting = &conf.HTTPServerConfig{
+			Accounts: accounts,
+		}
+	default:
+		return nil, fmt.Errorf("InboundBuilderWithUsers only supports Socks and HTTP, got: %s", nodeInfo.NodeType)
+	}
+
+	setting, err := json.Marshal(proxySetting)
+	if err != nil {
+		return nil, fmt.Errorf("marshal proxy %s config failed: %s", nodeInfo.NodeType, err)
+	}
+	inboundDetourConfig.Protocol = protocol
+	rawSetting := json.RawMessage(setting)
+	inboundDetourConfig.Settings = &rawSetting
+
+	// Build streamSettings (tcp only for socks/http)
+	streamSetting := new(conf.StreamConfig)
+	transportProtocol := conf.TransportProtocol("tcp")
+	streamSetting.Network = &transportProtocol
+	tcpSetting := &conf.TCPConfig{
+		AcceptProxyProtocol: config.EnableProxyProtocol,
+	}
+	streamSetting.TCPSettings = tcpSetting
+
+	// TLS for HTTP proxy (HTTPS)
+	if nodeInfo.EnableTLS && config.CertConfig != nil && config.CertConfig.CertMode != "none" {
+		streamSetting.Security = "tls"
+		certFile, keyFile, err := getCertFile(config.CertConfig)
+		if err != nil {
+			return nil, err
+		}
+		tlsSettings := &conf.TLSConfig{
+			RejectUnknownSNI: config.CertConfig.RejectUnknownSni,
+		}
+		tlsSettings.Certs = append(tlsSettings.Certs, &conf.TLSCertConfig{CertFile: certFile, KeyFile: keyFile, OcspStapling: 3600})
+		streamSetting.TLSSettings = tlsSettings
+	}
+
+	inboundDetourConfig.StreamSetting = streamSetting
+	return inboundDetourConfig.Build()
+}
+
 // InboundBuilder build Inbound config for different protocol
 func InboundBuilder(config *Config, nodeInfo *api.NodeInfo, tag string) (*core.InboundHandlerConfig, error) {
 	inboundDetourConfig := &conf.InboundDetourConfig{}
@@ -129,8 +228,20 @@ func InboundBuilder(config *Config, nodeInfo *api.NodeInfo, tag string) (*core.I
 			Host:        "v1.mux.cool",
 			NetworkList: []string{"tcp", "udp"},
 		}
+	case "Socks":
+		protocol = "socks"
+		proxySetting = &conf.SocksServerConfig{
+			AuthMethod: "password",
+			Accounts:   []*conf.SocksAccount{}, // users managed via full rebuild
+			UDP:        true,
+		}
+	case "HTTP":
+		protocol = "http"
+		proxySetting = &conf.HTTPServerConfig{
+			Accounts: []*conf.HTTPAccount{}, // users managed via full rebuild
+		}
 	default:
-		return nil, fmt.Errorf("unsupported node type: %s, Only support: Vmess, VLESS, Trojan, Shadowsocks, and Shadowsocks-Plugin", nodeInfo.NodeType)
+		return nil, fmt.Errorf("unsupported node type: %s, Only support: Vmess, VLESS, Trojan, Shadowsocks, Shadowsocks-Plugin, Socks, and HTTP", nodeInfo.NodeType)
 	}
 
 	setting, err := json.Marshal(proxySetting)

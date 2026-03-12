@@ -207,6 +207,14 @@ func (c *APIClient) GetNodeInfo() (nodeInfo *api.NodeInfo, err error) {
 		nodeInfo, err = c.parseTuicNodeResponse(server)
 	case "AnyTLS", "anytls":
 		nodeInfo, err = c.parseAnyTLSNodeResponse(server)
+	case "Socks", "socks":
+		nodeInfo, err = c.parseSocksNodeResponse(server)
+	case "HTTP", "http":
+		nodeInfo, err = c.parseHTTPNodeResponse(server)
+	case "Naive", "naive":
+		return nil, fmt.Errorf("node type 'naive' (NaïveProxy) is not supported by xray-core backend, please use a dedicated NaïveProxy backend")
+	case "Mieru", "mieru":
+		return nil, fmt.Errorf("node type 'mieru' is not supported by xray-core backend, please use a dedicated Mieru backend")
 	default:
 		return nil, fmt.Errorf("unsupported node type: %s", c.NodeType)
 	}
@@ -224,7 +232,7 @@ func (c *APIClient) GetUserList() (UserList *[]api.UserInfo, err error) {
 	path := "/api/v1/server/UniProxy/user"
 
 	switch c.NodeType {
-	case "V2ray", "Trojan", "Shadowsocks", "Vmess", "Vless", "Hysteria2", "hysteria2", "Hysteria", "hysteria", "Tuic", "tuic", "AnyTLS", "anytls":
+	case "V2ray", "Trojan", "Shadowsocks", "Vmess", "Vless", "Hysteria2", "hysteria2", "Hysteria", "hysteria", "Tuic", "tuic", "AnyTLS", "anytls", "Socks", "socks", "HTTP", "http":
 		break
 	default:
 		return nil, fmt.Errorf("unsupported node type: %s", c.NodeType)
@@ -449,6 +457,10 @@ func (c *APIClient) parseTrojanNodeResponse(s *serverConfig) (*api.NodeInfo, err
 		if s.NetworkSettings.Host != "" {
 			host = s.NetworkSettings.Host
 		}
+	case "xhttp", "splithttp":
+		if s.NetworkSettings.Host != "" {
+			host = s.NetworkSettings.Host
+		}
 	}
 
 	if host == "" {
@@ -468,6 +480,29 @@ func (c *APIClient) parseTrojanNodeResponse(s *serverConfig) (*api.NodeInfo, err
 		Header:            header,
 		NameServerConfig:  s.parseDNSConfig(),
 	}
+
+	// XHTTP bypass CDN fields for Trojan (same as V2ray/VLESS)
+	if transportProtocol == "xhttp" || transportProtocol == "splithttp" {
+		nodeInfo.XHTTPMode = s.NetworkSettings.Mode
+		nodeInfo.XHTTPExtra = s.NetworkSettings.Extra
+		nodeInfo.XPaddingBytes = s.NetworkSettings.XPaddingBytes
+		nodeInfo.XPaddingObfsMode = s.NetworkSettings.XPaddingObfsMode
+		nodeInfo.XPaddingKey = s.NetworkSettings.XPaddingKey
+		nodeInfo.XPaddingHeader = s.NetworkSettings.XPaddingHeader
+		nodeInfo.XPaddingPlacement = s.NetworkSettings.XPaddingPlacement
+		nodeInfo.XPaddingMethod = s.NetworkSettings.XPaddingMethod
+		nodeInfo.UplinkHTTPMethod = s.NetworkSettings.UplinkHTTPMethod
+		nodeInfo.SessionPlacement = s.NetworkSettings.SessionPlacement
+		nodeInfo.SessionKey = s.NetworkSettings.SessionKey
+		nodeInfo.SeqPlacement = s.NetworkSettings.SeqPlacement
+		nodeInfo.SeqKey = s.NetworkSettings.SeqKey
+		nodeInfo.UplinkDataPlacement = s.NetworkSettings.UplinkDataPlacement
+		nodeInfo.UplinkDataKey = s.NetworkSettings.UplinkDataKey
+		nodeInfo.UplinkChunkSize = s.NetworkSettings.UplinkChunkSize
+		nodeInfo.NoGRPCHeader = s.NetworkSettings.NoGRPCHeader
+		nodeInfo.NoSSEHeader = s.NetworkSettings.NoSSEHeader
+	}
+
 	return nodeInfo, nil
 }
 
@@ -739,6 +774,7 @@ func (c *APIClient) parseTuicNodeResponse(s *serverConfig) (*api.NodeInfo, error
 			CongestionControl: s.CongestionControl,
 			ZeroRTTHandshake:  s.ZeroRTTHandshake,
 			Heartbeat:         parseHeartbeatSeconds(s.Heartbeat),
+			AuthTimeout:       parseHeartbeatSeconds(s.AuthTimeout),
 		},
 		NameServerConfig: s.parseDNSConfig(),
 	}, nil
@@ -764,6 +800,39 @@ func (c *APIClient) parseAnyTLSNodeResponse(s *serverConfig) (*api.NodeInfo, err
 		EnableTLS:        true,
 		AnyTLSConfig:     &api.AnyTLSConfig{PaddingScheme: s.PaddingScheme},
 		NameServerConfig: s.parseDNSConfig(),
+	}, nil
+}
+
+// parseSocksNodeResponse parse the response for Socks proxy nodes.
+func (c *APIClient) parseSocksNodeResponse(s *serverConfig) (*api.NodeInfo, error) {
+	if s == nil {
+		return nil, errors.New("server config is nil")
+	}
+
+	return &api.NodeInfo{
+		NodeType:          "Socks",
+		NodeID:            c.NodeID,
+		Port:              uint32(s.ServerPort),
+		TransportProtocol: "tcp",
+		NameServerConfig:  s.parseDNSConfig(),
+	}, nil
+}
+
+// parseHTTPNodeResponse parse the response for HTTP proxy nodes.
+func (c *APIClient) parseHTTPNodeResponse(s *serverConfig) (*api.NodeInfo, error) {
+	if s == nil {
+		return nil, errors.New("server config is nil")
+	}
+
+	enableTLS := s.Tls == 1
+
+	return &api.NodeInfo{
+		NodeType:          "HTTP",
+		NodeID:            c.NodeID,
+		Port:              uint32(s.ServerPort),
+		TransportProtocol: "tcp",
+		EnableTLS:         enableTLS,
+		NameServerConfig:  s.parseDNSConfig(),
 	}, nil
 }
 

@@ -33,6 +33,8 @@ var xrayRManagedPrefixes = []string{
 	"Trojan_",
 	"Vmess_",
 	"Shadowsocks_",
+	"Socks_",
+	"HTTP_",
 }
 
 // isXrayRManagedTag checks if a tag is managed by XrayR (i.e., it belongs to a specific node).
