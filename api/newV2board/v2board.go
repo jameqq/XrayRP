@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -21,6 +20,7 @@ import (
 	"github.com/xtls/xray-core/infra/conf"
 
 	"github.com/Mtoly/XrayRP/api"
+	"github.com/Mtoly/XrayRP/common"
 )
 
 // APIClient create an api client to the panel.
@@ -106,7 +106,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 
 		// read line by line
 		for fileScanner.Scan() {
-			pattern, err := regexp.Compile(fileScanner.Text())
+			pattern, err := common.SafeCompileRegex(fileScanner.Text())
 			if err != nil {
 				log.Printf("Invalid rule regex: %s, skipping", err)
 				continue
@@ -118,7 +118,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 		}
 		// handle first encountered error while reading
 		if err := fileScanner.Err(); err != nil {
-			log.Fatalf("Error while reading file: %s", err)
+			log.Printf("Error while reading file: %s", err)
 			return
 		}
 	}
@@ -151,12 +151,12 @@ func (c *APIClient) parseResponse(res *resty.Response, path string, err error) (
 	}
 
 	if res.StatusCode() > 399 {
-		return nil, fmt.Errorf("request %s failed: %s, %v", c.assembleURL(path), res.String(), err)
+		return nil, fmt.Errorf("request %s failed: status %d", c.assembleURL(path), res.StatusCode())
 	}
 
 	rtn, err := simplejson.NewJson(res.Body())
 	if err != nil {
-		return nil, fmt.Errorf("ret %s invalid", res.String())
+		return nil, fmt.Errorf("request %s returned invalid JSON", c.assembleURL(path))
 	}
 
 	return rtn, nil
@@ -220,7 +220,7 @@ func (c *APIClient) GetNodeInfo() (nodeInfo *api.NodeInfo, err error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("parse node info failed: %s, \nError: %v", res.String(), err)
+		return nil, fmt.Errorf("parse node info failed: %v", err)
 	}
 
 	return nodeInfo, nil
@@ -318,7 +318,7 @@ func (c *APIClient) GetNodeRule() (*[]api.DetectRule, error) {
 
 	for i := range routes {
 		if routes[i].Action == "block" {
-			pattern, err := regexp.Compile(strings.Join(routes[i].Match, "|"))
+			pattern, err := common.SafeCompileRegex(strings.Join(routes[i].Match, "|"))
 			if err != nil {
 				log.Printf("Invalid route rule regex (index=%d): %s, skipping", i, err)
 				continue

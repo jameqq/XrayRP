@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,6 +19,7 @@ import (
 	C "github.com/sagernet/sing/common"
 
 	"github.com/Mtoly/XrayRP/api"
+	"github.com/Mtoly/XrayRP/common"
 )
 
 // APIClient create an api client to the panel.
@@ -96,12 +96,13 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 			log.Printf("Error when opening file: %s", err)
 			return LocalRuleList
 		}
+		defer file.Close()
 
 		fileScanner := bufio.NewScanner(file)
 
 		// read line by line
 		for fileScanner.Scan() {
-			pattern, err := regexp.Compile(fileScanner.Text())
+			pattern, err := common.SafeCompileRegex(fileScanner.Text())
 			if err != nil {
 				log.Printf("Invalid rule regex: %s, skipping", err)
 				continue
@@ -113,11 +114,9 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 		}
 		// handle first encountered error while reading
 		if err := fileScanner.Err(); err != nil {
-			log.Fatalf("Error while reading file: %s", err)
+			log.Printf("Error while reading file: %s", err)
 			return
 		}
-
-		file.Close()
 	}
 
 	return LocalRuleList
@@ -148,12 +147,11 @@ func (c *APIClient) parseResponse(res *resty.Response, path string, err error) (
 	}
 
 	if res.StatusCode() >= 400 {
-		body := res.Body()
-		return nil, fmt.Errorf("request %s failed: %s, %s", c.assembleURL(path), string(body), err)
+		return nil, fmt.Errorf("request %s failed: status %d", c.assembleURL(path), res.StatusCode())
 	}
 	rtn, err := simplejson.NewJson(res.Body())
 	if err != nil {
-		return nil, fmt.Errorf("ret %s invalid", res.String())
+		return nil, fmt.Errorf("request %s returned invalid JSON", c.assembleURL(path))
 	}
 	return rtn, nil
 }
@@ -207,8 +205,7 @@ func (c *APIClient) GetNodeInfo() (nodeInfo *api.NodeInfo, err error) {
 	}
 
 	if err != nil {
-		res, _ := response.MarshalJSON()
-		return nil, fmt.Errorf("parse node info failed: %s, \nError: %s", string(res), err)
+		return nil, fmt.Errorf("parse node info failed: %v", err)
 	}
 
 	return nodeInfo, nil
@@ -318,7 +315,7 @@ func (c *APIClient) GetNodeRule() (*[]api.DetectRule, error) {
 	ruleListResponse := c.ConfigResp.Get("routing").Get("rules").GetIndex(1).Get("domain").MustStringArray()
 	for i, rule := range ruleListResponse {
 		rule = strings.TrimPrefix(rule, "regexp:")
-		pattern, err := regexp.Compile(rule)
+		pattern, err := common.SafeCompileRegex(rule)
 		if err != nil {
 			log.Printf("Invalid rule regex (index=%d): %s, skipping", i, err)
 			continue

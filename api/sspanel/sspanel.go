@@ -18,6 +18,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/Mtoly/XrayRP/api"
+	"github.com/Mtoly/XrayRP/common"
 )
 
 var (
@@ -107,7 +108,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 
 		// read line by line
 		for fileScanner.Scan() {
-			pattern, err := regexp.Compile(fileScanner.Text())
+			pattern, err := common.SafeCompileRegex(fileScanner.Text())
 			if err != nil {
 				log.Printf("Invalid rule regex: %s, skipping", err)
 				continue
@@ -119,7 +120,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 		}
 		// handle first encountered error while reading
 		if err := fileScanner.Err(); err != nil {
-			log.Fatalf("Error while reading file: %s", err)
+			log.Printf("Error while reading file: %s", err)
 			return
 		}
 	}
@@ -147,14 +148,12 @@ func (c *APIClient) parseResponse(res *resty.Response, path string, err error) (
 	}
 
 	if res.StatusCode() >= 400 {
-		body := res.Body()
-		return nil, fmt.Errorf("request %s failed: %s, %v", c.assembleURL(path), string(body), err)
+		return nil, fmt.Errorf("request %s failed: status %d", c.assembleURL(path), res.StatusCode())
 	}
 	response := res.Result().(*Response)
 
 	if response.Ret != 1 {
-		res, _ := json.Marshal(&response)
-		return nil, fmt.Errorf("ret %s invalid", string(res))
+		return nil, fmt.Errorf("request %s returned unexpected ret code", c.assembleURL(path))
 	}
 	return response, nil
 }
@@ -397,7 +396,7 @@ func (c *APIClient) GetNodeRule() (*[]api.DetectRule, error) {
 	}
 
 	for _, r := range *ruleListResponse {
-		pattern, err := regexp.Compile(r.Content)
+		pattern, err := common.SafeCompileRegex(r.Content)
 		if err != nil {
 			log.Printf("Invalid rule regex from panel (ID=%d): %s, skipping", r.ID, err)
 			continue

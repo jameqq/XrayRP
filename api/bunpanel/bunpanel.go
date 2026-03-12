@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,6 +17,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/Mtoly/XrayRP/api"
+	"github.com/Mtoly/XrayRP/common"
 )
 
 type APIClient struct {
@@ -115,7 +115,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 
 		// read line by line
 		for fileScanner.Scan() {
-			pattern, err := regexp.Compile(fileScanner.Text())
+			pattern, err := common.SafeCompileRegex(fileScanner.Text())
 			if err != nil {
 				log.Printf("Invalid rule regex: %s, skipping", err)
 				continue
@@ -127,7 +127,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 		}
 		// handle first encountered error while reading
 		if err := fileScanner.Err(); err != nil {
-			log.Fatalf("Error while reading file: %s", err)
+			log.Printf("Error while reading file: %s", err)
 			return
 		}
 	}
@@ -155,14 +155,12 @@ func (c *APIClient) parseResponse(res *resty.Response, path string, err error) (
 	}
 
 	if res.StatusCode() >= 400 {
-		body := res.Body()
-		return nil, fmt.Errorf("request %s failed: %s, %v", c.assembleURL(path), string(body), err)
+		return nil, fmt.Errorf("request %s failed: status %d", c.assembleURL(path), res.StatusCode())
 	}
 	response := res.Result().(*Response)
 
 	if response.StatusCode != 200 {
-		res, _ := json.Marshal(&response)
-		return nil, fmt.Errorf("statusCode %s invalid", string(res))
+		return nil, fmt.Errorf("request %s returned unexpected status code: %d", c.assembleURL(path), response.StatusCode)
 	}
 	return response, nil
 }
@@ -381,7 +379,9 @@ func (c *APIClient) ParseNodeInfo(nodeInfoResponse *Server) (*api.NodeInfo, erro
 	realityConfig := new(api.REALITYConfig)
 	if nodeConfig.RealitySettings != nil {
 		r := new(RealitySettings)
-		json.Unmarshal(nodeConfig.RealitySettings, r)
+		if err := json.Unmarshal(nodeConfig.RealitySettings, r); err != nil {
+			return nil, fmt.Errorf("unmarshal RealitySettings failed: %w", err)
+		}
 		realityConfig = &api.REALITYConfig{
 			Dest:             r.Dest,
 			ProxyProtocolVer: r.ProxyProtocolVer,
@@ -395,31 +395,43 @@ func (c *APIClient) ParseNodeInfo(nodeInfoResponse *Server) (*api.NodeInfo, erro
 	}
 	wsConfig := new(WsSettings)
 	if nodeConfig.WsSettings != nil {
-		json.Unmarshal(nodeConfig.WsSettings, wsConfig)
+		if err := json.Unmarshal(nodeConfig.WsSettings, wsConfig); err != nil {
+			return nil, fmt.Errorf("unmarshal WsSettings failed: %w", err)
+		}
 	}
 
 	grpcConfig := new(GrpcSettigns)
 	if nodeConfig.GrpcSettings != nil {
-		json.Unmarshal(nodeConfig.GrpcSettings, grpcConfig)
+		if err := json.Unmarshal(nodeConfig.GrpcSettings, grpcConfig); err != nil {
+			return nil, fmt.Errorf("unmarshal GrpcSettings failed: %w", err)
+		}
 	}
 
 	tcpConfig := new(TcpSettings)
 	if nodeConfig.TcpSettings != nil {
-		json.Unmarshal(nodeConfig.TcpSettings, tcpConfig)
+		if err := json.Unmarshal(nodeConfig.TcpSettings, tcpConfig); err != nil {
+			return nil, fmt.Errorf("unmarshal TcpSettings failed: %w", err)
+		}
 	}
 
 	// Parse SplitHTTP/XHTTP settings
 	splithttpConfig := new(SplitHTTPSettings)
 	if nodeConfig.XHTTPSettings != nil {
-		json.Unmarshal(nodeConfig.XHTTPSettings, splithttpConfig)
+		if err := json.Unmarshal(nodeConfig.XHTTPSettings, splithttpConfig); err != nil {
+			return nil, fmt.Errorf("unmarshal XHTTPSettings failed: %w", err)
+		}
 	} else if nodeConfig.SplitHTTPSettings != nil {
-		json.Unmarshal(nodeConfig.SplitHTTPSettings, splithttpConfig)
+		if err := json.Unmarshal(nodeConfig.SplitHTTPSettings, splithttpConfig); err != nil {
+			return nil, fmt.Errorf("unmarshal SplitHTTPSettings failed: %w", err)
+		}
 	}
 
 	// Parse HttpUpgrade settings
 	httpupgradeConfig := new(HttpUpgradeSettings)
 	if nodeConfig.HttpUpgradeSettings != nil {
-		json.Unmarshal(nodeConfig.HttpUpgradeSettings, httpupgradeConfig)
+		if err := json.Unmarshal(nodeConfig.HttpUpgradeSettings, httpupgradeConfig); err != nil {
+			return nil, fmt.Errorf("unmarshal HttpUpgradeSettings failed: %w", err)
+		}
 	}
 
 	// Determine Host and Path based on transport protocol

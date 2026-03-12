@@ -71,15 +71,6 @@ func (s *TuicService) Start() error {
 		s.logger.Warn("No users found for TUIC node, authentication may fail")
 	} else {
 		s.logger.Infof("Syncing %d users for TUIC node", len(*userInfo))
-		// Log first user UUID (partial) for verification at info level so user can confirm credentials
-		if len(*userInfo) > 0 {
-			firstUser := (*userInfo)[0]
-			uuidPreview := firstUser.UUID
-			if len(uuidPreview) > 8 {
-				uuidPreview = uuidPreview[:8] + "..."
-			}
-			s.logger.Infof("First TUIC user from panel: UID=%d, UUID=%s, HasPassword=%v", firstUser.UID, uuidPreview, firstUser.Passwd != "")
-		}
 	}
 	s.syncUsers(userInfo)
 
