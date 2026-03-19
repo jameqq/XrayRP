@@ -111,6 +111,7 @@ func (c *Controller) Start() error {
 	if err != nil {
 		return err
 	}
+	newNodeInfo = c.applyLocalNodeConfig(newNodeInfo)
 	if newNodeInfo.Port == 0 || newNodeInfo.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d, must be 1-65535", newNodeInfo.Port)
 	}
@@ -228,6 +229,7 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 			return nil
 		}
 	}
+	newNodeInfo = c.applyLocalNodeConfig(newNodeInfo)
 	if newNodeInfo.Port == 0 || newNodeInfo.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d, must be 1-65535", newNodeInfo.Port)
 	}
@@ -706,6 +708,40 @@ func (c *Controller) buildNodeTag() string {
 	// Include NodeID to avoid cross-node mixing when multiple logical nodes share
 	// the same NodeType/ListenIP/Port (e.g., CDN or multi-node deployments).
 	return fmt.Sprintf("%s_%s_%d_%d", base, c.config.ListenIP, c.nodeInfo.Port, c.nodeInfo.NodeID)
+}
+
+func (c *Controller) applyLocalNodeConfig(nodeInfo *api.NodeInfo) *api.NodeInfo {
+	if nodeInfo == nil {
+		return nil
+	}
+
+	if c.config.EnableREALITY {
+		nodeInfo.EnableREALITY = true
+		nodeInfo.EnableVless = true
+
+		if !c.config.DisableLocalREALITYConfig && c.config.REALITYConfigs != nil {
+			localReality := c.config.REALITYConfigs
+			nodeInfo.REALITYConfig = &api.REALITYConfig{
+				Dest:             localReality.Dest,
+				ProxyProtocolVer: localReality.ProxyProtocolVer,
+				ServerNames:      append([]string(nil), localReality.ServerNames...),
+				PrivateKey:       localReality.PrivateKey,
+				MinClientVer:     localReality.MinClientVer,
+				MaxClientVer:     localReality.MaxClientVer,
+				MaxTimeDiff:      localReality.MaxTimeDiff,
+				ShortIds:         append([]string(nil), localReality.ShortIds...),
+			}
+		}
+	}
+
+	if nodeInfo.EnableVless || nodeInfo.EnableREALITY {
+		nodeInfo.EnableVless = true
+		if strings.EqualFold(nodeInfo.NodeType, "V2ray") || strings.EqualFold(nodeInfo.NodeType, "Vmess") {
+			nodeInfo.NodeType = "Vless"
+		}
+	}
+
+	return nodeInfo
 }
 
 // func (c *Controller) logPrefix() string {
