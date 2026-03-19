@@ -718,9 +718,6 @@ func (c *Controller) applyLocalNodeConfig(nodeInfo *api.NodeInfo) *api.NodeInfo 
 	if c.config.EnableREALITY {
 		nodeInfo.EnableREALITY = true
 		nodeInfo.EnableVless = true
-		if strings.EqualFold(nodeInfo.NodeType, "V2ray") || strings.EqualFold(nodeInfo.NodeType, "Vmess") {
-			nodeInfo.NodeType = "Vless"
-		}
 
 		if !c.config.DisableLocalREALITYConfig && c.config.REALITYConfigs != nil {
 			if nodeInfo.REALITYConfig == nil {
@@ -755,7 +752,7 @@ func (c *Controller) applyLocalNodeConfig(nodeInfo *api.NodeInfo) *api.NodeInfo 
 		}
 	}
 
-	if nodeInfo.EnableREALITY {
+	if nodeInfo.EnableVless || nodeInfo.EnableREALITY {
 		nodeInfo.EnableVless = true
 		if strings.EqualFold(nodeInfo.NodeType, "V2ray") || strings.EqualFold(nodeInfo.NodeType, "Vmess") {
 			nodeInfo.NodeType = "Vless"

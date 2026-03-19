@@ -128,9 +128,16 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 	return LocalRuleList
 }
 
+func (c *APIClient) resolvedNodeType(enableVless bool) string {
+	if strings.EqualFold(c.NodeType, "V2ray") && enableVless {
+		return "Vless"
+	}
+	return c.NodeType
+}
+
 // Describe return a description of the client
 func (c *APIClient) Describe() api.ClientInfo {
-	return api.ClientInfo{APIHost: c.APIHost, NodeID: c.NodeID, Key: "", NodeType: c.NodeType}
+	return api.ClientInfo{APIHost: c.APIHost, NodeID: c.NodeID, Key: "", NodeType: c.resolvedNodeType(c.EnableVless)}
 }
 
 // Debug set the client debug for client
@@ -517,7 +524,7 @@ func (c *APIClient) ParseV2rayNodeResponse(nodeInfoResponse *NodeInfoResponse) (
 
 	// Create GeneralNodeInfo
 	nodeInfo := &api.NodeInfo{
-		NodeType:          c.NodeType,
+		NodeType:          c.resolvedNodeType(c.EnableVless),
 		NodeID:            c.NodeID,
 		Port:              port,
 		SpeedLimit:        speedLimit,
@@ -888,9 +895,8 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 		vlessFlow = c.VlessFlow
 	}
 
-	nodeType := c.NodeType
-	if c.NodeType == "V2ray" && (enableVless || enableREALITY) {
-		nodeType = "Vless"
+	nodeType := c.resolvedNodeType(enableVless || enableREALITY)
+	if nodeType == "Vless" {
 		enableVless = true
 	}
 
