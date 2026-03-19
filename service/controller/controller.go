@@ -720,34 +720,16 @@ func (c *Controller) applyLocalNodeConfig(nodeInfo *api.NodeInfo) *api.NodeInfo 
 		nodeInfo.EnableVless = true
 
 		if !c.config.DisableLocalREALITYConfig && c.config.REALITYConfigs != nil {
-			if nodeInfo.REALITYConfig == nil {
-				nodeInfo.REALITYConfig = &api.REALITYConfig{}
-			}
-
 			localReality := c.config.REALITYConfigs
-			if nodeInfo.REALITYConfig.Dest == "" {
-				nodeInfo.REALITYConfig.Dest = localReality.Dest
-			}
-			if nodeInfo.REALITYConfig.ProxyProtocolVer == 0 {
-				nodeInfo.REALITYConfig.ProxyProtocolVer = localReality.ProxyProtocolVer
-			}
-			if len(nodeInfo.REALITYConfig.ServerNames) == 0 {
-				nodeInfo.REALITYConfig.ServerNames = localReality.ServerNames
-			}
-			if nodeInfo.REALITYConfig.PrivateKey == "" {
-				nodeInfo.REALITYConfig.PrivateKey = localReality.PrivateKey
-			}
-			if nodeInfo.REALITYConfig.MinClientVer == "" {
-				nodeInfo.REALITYConfig.MinClientVer = localReality.MinClientVer
-			}
-			if nodeInfo.REALITYConfig.MaxClientVer == "" {
-				nodeInfo.REALITYConfig.MaxClientVer = localReality.MaxClientVer
-			}
-			if nodeInfo.REALITYConfig.MaxTimeDiff == 0 {
-				nodeInfo.REALITYConfig.MaxTimeDiff = localReality.MaxTimeDiff
-			}
-			if len(nodeInfo.REALITYConfig.ShortIds) == 0 {
-				nodeInfo.REALITYConfig.ShortIds = localReality.ShortIds
+			nodeInfo.REALITYConfig = &api.REALITYConfig{
+				Dest:             localReality.Dest,
+				ProxyProtocolVer: localReality.ProxyProtocolVer,
+				ServerNames:      append([]string(nil), localReality.ServerNames...),
+				PrivateKey:       localReality.PrivateKey,
+				MinClientVer:     localReality.MinClientVer,
+				MaxClientVer:     localReality.MaxClientVer,
+				MaxTimeDiff:      localReality.MaxTimeDiff,
+				ShortIds:         append([]string(nil), localReality.ShortIds...),
 			}
 		}
 	}
