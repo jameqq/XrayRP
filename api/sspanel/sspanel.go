@@ -895,10 +895,19 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 		vlessFlow = c.VlessFlow
 	}
 
-	nodeType := c.resolvedNodeType(enableVless || enableREALITY)
-	if nodeType == "Vless" {
-		enableVless = true
-	}
+nodeType := c.resolvedNodeType(enableVless || enableREALITY)
+
+// 兼容旧逻辑：V2ray 强制转 Vless
+if nodeType == "" {
+    nodeType = c.NodeType
+    if c.NodeType == "V2ray" && (enableVless || enableREALITY) {
+        nodeType = "Vless"
+    }
+}
+
+if nodeType == "Vless" {
+    enableVless = true
+}
 
 	nodeInfo := &api.NodeInfo{
 		NodeType:            nodeType,
