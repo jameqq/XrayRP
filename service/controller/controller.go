@@ -111,6 +111,7 @@ func (c *Controller) Start() error {
 	if err != nil {
 		return err
 	}
+	newNodeInfo = c.applyLocalNodeConfig(newNodeInfo)
 	if newNodeInfo.Port == 0 || newNodeInfo.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d, must be 1-65535", newNodeInfo.Port)
 	}
@@ -228,6 +229,7 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 			return nil
 		}
 	}
+	newNodeInfo = c.applyLocalNodeConfig(newNodeInfo)
 	if newNodeInfo.Port == 0 || newNodeInfo.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d, must be 1-65535", newNodeInfo.Port)
 	}
@@ -706,6 +708,61 @@ func (c *Controller) buildNodeTag() string {
 	// Include NodeID to avoid cross-node mixing when multiple logical nodes share
 	// the same NodeType/ListenIP/Port (e.g., CDN or multi-node deployments).
 	return fmt.Sprintf("%s_%s_%d_%d", base, c.config.ListenIP, c.nodeInfo.Port, c.nodeInfo.NodeID)
+}
+
+func (c *Controller) applyLocalNodeConfig(nodeInfo *api.NodeInfo) *api.NodeInfo {
+	if nodeInfo == nil {
+		return nil
+	}
+
+	if c.config.EnableREALITY {
+		nodeInfo.EnableREALITY = true
+		nodeInfo.EnableVless = true
+		if strings.EqualFold(nodeInfo.NodeType, "V2ray") || strings.EqualFold(nodeInfo.NodeType, "Vmess") {
+			nodeInfo.NodeType = "Vless"
+		}
+
+		if !c.config.DisableLocalREALITYConfig && c.config.REALITYConfigs != nil {
+			if nodeInfo.REALITYConfig == nil {
+				nodeInfo.REALITYConfig = &api.REALITYConfig{}
+			}
+
+			localReality := c.config.REALITYConfigs
+			if nodeInfo.REALITYConfig.Dest == "" {
+				nodeInfo.REALITYConfig.Dest = localReality.Dest
+			}
+			if nodeInfo.REALITYConfig.ProxyProtocolVer == 0 {
+				nodeInfo.REALITYConfig.ProxyProtocolVer = localReality.ProxyProtocolVer
+			}
+			if len(nodeInfo.REALITYConfig.ServerNames) == 0 {
+				nodeInfo.REALITYConfig.ServerNames = localReality.ServerNames
+			}
+			if nodeInfo.REALITYConfig.PrivateKey == "" {
+				nodeInfo.REALITYConfig.PrivateKey = localReality.PrivateKey
+			}
+			if nodeInfo.REALITYConfig.MinClientVer == "" {
+				nodeInfo.REALITYConfig.MinClientVer = localReality.MinClientVer
+			}
+			if nodeInfo.REALITYConfig.MaxClientVer == "" {
+				nodeInfo.REALITYConfig.MaxClientVer = localReality.MaxClientVer
+			}
+			if nodeInfo.REALITYConfig.MaxTimeDiff == 0 {
+				nodeInfo.REALITYConfig.MaxTimeDiff = localReality.MaxTimeDiff
+			}
+			if len(nodeInfo.REALITYConfig.ShortIds) == 0 {
+				nodeInfo.REALITYConfig.ShortIds = localReality.ShortIds
+			}
+		}
+	}
+
+	if nodeInfo.EnableREALITY {
+		nodeInfo.EnableVless = true
+		if strings.EqualFold(nodeInfo.NodeType, "V2ray") || strings.EqualFold(nodeInfo.NodeType, "Vmess") {
+			nodeInfo.NodeType = "Vless"
+		}
+	}
+
+	return nodeInfo
 }
 
 // func (c *Controller) logPrefix() string {
