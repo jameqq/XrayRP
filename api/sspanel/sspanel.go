@@ -724,7 +724,12 @@ func (c *APIClient) ParseTrojanNodeResponse(nodeInfoResponse *NodeInfoResponse) 
 // ParseUserListResponse parse the response for the given node info format
 func (c *APIClient) ParseUserListResponse(userInfoResponse *[]UserResponse) (*[]api.UserInfo, error) {
 	c.access.Lock()
-	defer c.access.Unlock()
+	defer func() {
+		// Clear last report snapshot each polling cycle so stale alive_ip data
+		// from the panel does not keep users marked online forever.
+		c.LastReportOnline = make(map[int]int)
+		c.access.Unlock()
+	}()
 
 	var deviceLimit, localDeviceLimit = 0, 0
 	var speedLimit uint64 = 0
@@ -777,10 +782,11 @@ func (c *APIClient) ParseUserListResponse(userInfoResponse *[]UserResponse) (*[]
 // Only available for SSPanel version >= 2021.11
 func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*api.NodeInfo, error) {
 	var (
-		speedLimit                            uint64 = 0
-		enableTLS, enableVless, enableREALITY bool
-		alterID                               uint16 = 0
-		transportProtocol                     string
+		speedLimit               uint64 = 0
+		enableTLS, enableREALITY bool
+		enableVless                     = c.EnableVless
+		alterID                  uint16 = 0
+		transportProtocol        string
 	)
 
 	// Check if custom_config is null
@@ -877,8 +883,19 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 	}
 
 	// Create GeneralNodeInfo
+	vlessFlow := nodeConfig.Flow
+	if vlessFlow == "" {
+		vlessFlow = c.VlessFlow
+	}
+
+	nodeType := c.NodeType
+	if c.NodeType == "V2ray" && (enableVless || enableREALITY) {
+		nodeType = "Vless"
+		enableVless = true
+	}
+
 	nodeInfo := &api.NodeInfo{
-		NodeType:            c.NodeType,
+		NodeType:            nodeType,
 		NodeID:              c.NodeID,
 		Port:                port,
 		SpeedLimit:          speedLimit,
@@ -889,7 +906,7 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 		Path:                nodeConfig.Path,
 		EnableTLS:           enableTLS,
 		EnableVless:         enableVless,
-		VlessFlow:           nodeConfig.Flow,
+		VlessFlow:           vlessFlow,
 		CypherMethod:        nodeConfig.Method,
 		ServerKey:           nodeConfig.ServerKey,
 		ServiceName:         nodeConfig.Servicename,
