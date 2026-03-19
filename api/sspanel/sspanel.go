@@ -129,7 +129,7 @@ func readLocalRuleList(path string) (LocalRuleList []api.DetectRule) {
 }
 
 func (c *APIClient) resolvedNodeType(enableVless bool) string {
-	if strings.EqualFold(c.NodeType, "V2ray") && enableVless {
+	if enableVless && (strings.EqualFold(c.NodeType, "V2ray") || strings.EqualFold(c.NodeType, "Vmess")) {
 		return "Vless"
 	}
 	return c.NodeType
