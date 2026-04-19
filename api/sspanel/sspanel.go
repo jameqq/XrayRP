@@ -41,6 +41,7 @@ type APIClient struct {
 	DisableCustomConfig bool
 	LocalRuleList       []api.DetectRule
 	LastReportOnline    map[int]int
+	lastReportAt        time.Time
 	access              sync.Mutex
 	version             string
 	eTags               map[string]string
@@ -321,6 +322,7 @@ func (c *APIClient) ReportNodeOnlineUsers(onlineUserList *[]api.OnlineUser) erro
 		reportOnline[user.UID]++ // will start from 1 if key doesn’t exist
 	}
 	c.LastReportOnline = reportOnline // Update LastReportOnline
+	c.lastReportAt = time.Now()
 
 	postData := &PostData{Data: data}
 	path := "/mod_mu/users/aliveip"
@@ -446,6 +448,7 @@ func (c *APIClient) ParseV2rayNodeResponse(nodeInfoResponse *NodeInfoResponse) (
 	var path, host, transportProtocol, serviceName, HeaderType string
 	var header json.RawMessage
 	var speedLimit uint64 = 0
+	nodeType := c.NodeType
 	if nodeInfoResponse.RawServerString == "" {
 		return nil, fmt.Errorf("no server info in response")
 	}
@@ -516,8 +519,11 @@ func (c *APIClient) ParseV2rayNodeResponse(nodeInfoResponse *NodeInfoResponse) (
 	}
 
 	// Create GeneralNodeInfo
+	if c.EnableVless {
+		nodeType = "Vless"
+	}
 	nodeInfo := &api.NodeInfo{
-		NodeType:          c.NodeType,
+		NodeType:          nodeType,
 		NodeID:            c.NodeID,
 		Port:              port,
 		SpeedLimit:        speedLimit,
@@ -726,6 +732,15 @@ func (c *APIClient) ParseUserListResponse(userInfoResponse *[]UserResponse) (*[]
 	c.access.Lock()
 	defer c.access.Unlock()
 
+	// SSPanel can keep historical alive_ip records for a while.
+	// If this backend hasn't reported online users recently, clear local
+	// carry-over counts to avoid "always online" behavior.
+	const lastOnlineTTL = 2 * time.Minute
+	if !c.lastReportAt.IsZero() && time.Since(c.lastReportAt) > lastOnlineTTL {
+		c.LastReportOnline = make(map[int]int)
+		c.lastReportAt = time.Time{}
+	}
+
 	var deviceLimit, localDeviceLimit = 0, 0
 	var speedLimit uint64 = 0
 	var userList []api.UserInfo
@@ -781,6 +796,7 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 		enableTLS, enableVless, enableREALITY bool
 		alterID                               uint16 = 0
 		transportProtocol                     string
+		nodeType                              = c.NodeType
 	)
 
 	// Check if custom_config is null
@@ -833,6 +849,9 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 		if nodeConfig.EnableVless == "1" || strings.EqualFold(nodeConfig.EnableVless, "true") {
 			enableVless = true
 		}
+		if enableREALITY && enableVless {
+			nodeType = "Vless"
+		}
 	case "Trojan":
 		enableTLS = true
 		transportProtocol = "tcp"
@@ -878,7 +897,7 @@ func (c *APIClient) ParseSSPanelNodeInfo(nodeInfoResponse *NodeInfoResponse) (*a
 
 	// Create GeneralNodeInfo
 	nodeInfo := &api.NodeInfo{
-		NodeType:            c.NodeType,
+		NodeType:            nodeType,
 		NodeID:              c.NodeID,
 		Port:                port,
 		SpeedLimit:          speedLimit,

@@ -114,6 +114,7 @@ func (c *Controller) Start() error {
 	if newNodeInfo.Port == 0 || newNodeInfo.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d, must be 1-65535", newNodeInfo.Port)
 	}
+	c.applyLocalREALITYConfig(newNodeInfo)
 	c.nodeInfo = newNodeInfo
 	c.Tag = c.buildNodeTag()
 
@@ -231,6 +232,7 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 	if newNodeInfo.Port == 0 || newNodeInfo.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d, must be 1-65535", newNodeInfo.Port)
 	}
+	c.applyLocalREALITYConfig(newNodeInfo)
 
 	// Update User
 	var usersChanged = true
@@ -655,11 +657,13 @@ func (c *Controller) userInfoMonitor() (err error) {
 	// Report Online info
 	if onlineDevice, err := c.GetOnlineDevice(c.Tag); err != nil {
 		c.logger.Print(err)
-	} else if len(*onlineDevice) > 0 {
+	} else if len(*onlineDevice) > 0 || strings.EqualFold(c.panelType, "SSpanel") {
 		if err = c.apiClient.ReportNodeOnlineUsers(onlineDevice); err != nil {
 			c.logger.Print(err)
-		} else {
+		} else if len(*onlineDevice) > 0 {
 			c.logger.Printf("Report %d online users", len(*onlineDevice))
+		} else if strings.EqualFold(c.panelType, "SSpanel") {
+			c.logger.Debug("Report empty aliveip list to SSPanel for offline cleanup")
 		}
 	}
 
@@ -684,6 +688,27 @@ func (c *Controller) userInfoMonitor() (err error) {
 	return nil
 }
 
+func (c *Controller) applyLocalREALITYConfig(nodeInfo *api.NodeInfo) {
+	if c.config == nil || c.config.DisableLocalREALITYConfig || !c.config.EnableREALITY || c.config.REALITYConfigs == nil || nodeInfo == nil {
+		return
+	}
+	r := c.config.REALITYConfigs
+	nodeInfo.EnableREALITY = true
+	nodeInfo.REALITYConfig = &api.REALITYConfig{
+		Dest:             r.Dest,
+		ProxyProtocolVer: r.ProxyProtocolVer,
+		ServerNames:      r.ServerNames,
+		PrivateKey:       r.PrivateKey,
+		MinClientVer:     r.MinClientVer,
+		MaxClientVer:     r.MaxClientVer,
+		MaxTimeDiff:      r.MaxTimeDiff,
+		ShortIds:         r.ShortIds,
+	}
+	if strings.EqualFold(nodeInfo.NodeType, "V2ray") && nodeInfo.EnableVless && nodeInfo.EnableREALITY {
+		nodeInfo.NodeType = "Vless"
+	}
+}
+
 func (c *Controller) buildNodeTag() string {
 	// Normalize NodeType for tag prefix so same-node routing and data path guards
 	// consistently recognize managed protocols.
@@ -694,7 +719,11 @@ func (c *Controller) buildNodeTag() string {
 	case "trojan":
 		base = "Trojan"
 	case "vmess", "v2ray":
-		base = "Vmess"
+		if c.nodeInfo.EnableVless {
+			base = "VLESS"
+		} else {
+			base = "Vmess"
+		}
 	case "shadowsocks":
 		base = "Shadowsocks"
 	case "socks":
