@@ -452,6 +452,7 @@ func (c *APIClient) ReportIllegal(detectResultList *[]api.DetectResult) error {
 func (c *APIClient) ParseV2rayNodeResponse(nodeInfoResponse *NodeInfoResponse) (*api.NodeInfo, error) {
 	var enableTLS bool
 	var path, host, transportProtocol, serviceName, HeaderType string
+	nodeType := c.NodeType
 	var header json.RawMessage
 	var speedLimit uint64 = 0
 	if nodeInfoResponse.RawServerString == "" {
@@ -524,8 +525,11 @@ func (c *APIClient) ParseV2rayNodeResponse(nodeInfoResponse *NodeInfoResponse) (
 	}
 
 	// Create GeneralNodeInfo
+	if c.EnableVless {
+		nodeType = "Vless"
+	}
 	nodeInfo := &api.NodeInfo{
-		NodeType:          c.NodeType,
+		NodeType:          nodeType,
 		NodeID:            c.NodeID,
 		Port:              port,
 		SpeedLimit:        speedLimit,
@@ -822,15 +826,6 @@ func (c *APIClient) ParseHysteria2NodeResponse(nodeInfoResponse *NodeInfoRespons
 		speedLimit = uint64((c.SpeedLimit * 1000000) / 8)
 	} else {
 		speedLimit = uint64((nodeInfoResponse.SpeedLimit * 1000000) / 8)
-	}
-	alpn := []string{}
-	if rawALPN := strings.TrimSpace(params["alpn"]); rawALPN != "" {
-		for _, item := range strings.Split(rawALPN, ",") {
-			item = strings.TrimSpace(item)
-			if item != "" {
-				alpn = append(alpn, item)
-			}
-		}
 	}
 	return &api.NodeInfo{NodeType: "Hysteria2", NodeID: c.NodeID, Port: port, SpeedLimit: speedLimit, TransportProtocol: "udp", Host: host, SNI: params["sni"], EnableTLS: true, Hysteria2Config: &api.Hysteria2Config{Obfs: params["obfs"], ObfsPassword: params["obfs_password"], UpMbps: parseIntString(params["upmbps"], 0), DownMbps: parseIntString(params["downmbps"], 0), IgnoreClientBandwidth: parseBoolString(params["ignore_client_bandwidth"])}}, nil
 }
