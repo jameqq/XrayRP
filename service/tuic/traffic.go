@@ -1,8 +1,10 @@
 package tuic
 
 import (
+	"fmt"
 	"net"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/sagernet/sing-box/option"
@@ -346,10 +348,13 @@ func (s *TuicService) userMonitor() error {
 			s.restoreTraffic(snapshot)
 		}
 	}
-	if err = s.apiClient.ReportNodeOnlineUsers(&onlineUsers); err != nil {
-		s.logger.Print(err)
-	} else if len(onlineUsers) == 0 {
-		s.logger.Debug("Report empty aliveip list for offline cleanup")
+	shouldReportEmpty := strings.Contains(fmt.Sprintf("%T", s.apiClient), "sspanel.APIClient")
+	if len(onlineUsers) > 0 || shouldReportEmpty {
+		if err = s.apiClient.ReportNodeOnlineUsers(&onlineUsers); err != nil {
+			s.logger.Print(err)
+		} else if len(onlineUsers) == 0 && shouldReportEmpty {
+			s.logger.Debug("Report empty aliveip list to SSPanel for offline cleanup")
+		}
 	}
 
 	// Report Illegal user
