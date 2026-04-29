@@ -318,10 +318,10 @@ func (h *Hysteria2Service) userMonitor() error {
 			h.restoreTraffic(snapshot)
 		}
 	}
-	if len(onlineUsers) > 0 {
-		if err = h.apiClient.ReportNodeOnlineUsers(&onlineUsers); err != nil {
-			h.logger.Print(err)
-		}
+	if err = h.apiClient.ReportNodeOnlineUsers(&onlineUsers); err != nil {
+		h.logger.Print(err)
+	} else if len(onlineUsers) == 0 {
+		h.logger.Debug("Report empty aliveip list for offline cleanup")
 	}
 
 	// Report Illegal user

@@ -346,10 +346,10 @@ func (s *TuicService) userMonitor() error {
 			s.restoreTraffic(snapshot)
 		}
 	}
-	if len(onlineUsers) > 0 {
-		if err = s.apiClient.ReportNodeOnlineUsers(&onlineUsers); err != nil {
-			s.logger.Print(err)
-		}
+	if err = s.apiClient.ReportNodeOnlineUsers(&onlineUsers); err != nil {
+		s.logger.Print(err)
+	} else if len(onlineUsers) == 0 {
+		s.logger.Debug("Report empty aliveip list for offline cleanup")
 	}
 
 	// Report Illegal user
