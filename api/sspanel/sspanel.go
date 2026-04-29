@@ -208,6 +208,12 @@ func (c *APIClient) GetNodeInfo() (nodeInfo *api.NodeInfo, err error) {
 			nodeInfo, err = c.ParseSSNodeResponse(nodeInfoResponse)
 		case "Shadowsocks-Plugin":
 			nodeInfo, err = c.ParseSSPluginNodeResponse(nodeInfoResponse)
+		case "Hysteria2", "Hysteria", "hysteria2", "hysteria":
+			nodeInfo, err = c.ParseHysteria2NodeResponse(nodeInfoResponse)
+		case "Tuic", "tuic":
+			nodeInfo, err = c.ParseTuicNodeResponse(nodeInfoResponse)
+		case "AnyTLS", "anytls":
+			nodeInfo, err = c.ParseAnyTLSNodeResponse(nodeInfoResponse)
 		default:
 			return nil, fmt.Errorf("unsupported Node type: %s", c.NodeType)
 		}
@@ -721,6 +727,71 @@ func (c *APIClient) ParseTrojanNodeResponse(nodeInfoResponse *NodeInfoResponse) 
 	}
 
 	return nodeInfo, nil
+}
+
+func (c *APIClient) parseNodePort(nodeInfoResponse *NodeInfoResponse) (uint32, error) {
+	if nodeInfoResponse.RawServerString == "" {
+		return 0, errors.New("no server info in response")
+	}
+	if result := secondPortRe.FindStringSubmatch(nodeInfoResponse.RawServerString); len(result) > 1 {
+		parsedPort, err := strconv.ParseInt(result[1], 10, 32)
+		if err == nil && parsedPort >= 1 && parsedPort <= 65535 {
+			return uint32(uint16(parsedPort)), nil
+		}
+	}
+	if result := firstPortRe.FindStringSubmatch(nodeInfoResponse.RawServerString); len(result) > 1 {
+		parsedPort, err := strconv.ParseInt(result[1], 10, 32)
+		if err != nil {
+			return 0, err
+		}
+		if parsedPort < 1 || parsedPort > 65535 {
+			return 0, fmt.Errorf("invalid port %d: must be between 1 and 65535", parsedPort)
+		}
+		return uint32(uint16(parsedPort)), nil
+	}
+	return 0, errors.New("no port info in response")
+}
+
+func (c *APIClient) ParseHysteria2NodeResponse(nodeInfoResponse *NodeInfoResponse) (*api.NodeInfo, error) {
+	port, err := c.parseNodePort(nodeInfoResponse)
+	if err != nil {
+		return nil, err
+	}
+	var speedLimit uint64
+	if c.SpeedLimit > 0 {
+		speedLimit = uint64((c.SpeedLimit * 1000000) / 8)
+	} else {
+		speedLimit = uint64((nodeInfoResponse.SpeedLimit * 1000000) / 8)
+	}
+	return &api.NodeInfo{NodeType: "Hysteria2", NodeID: c.NodeID, Port: port, SpeedLimit: speedLimit, TransportProtocol: "udp", Hysteria2Config: &api.Hysteria2Config{}}, nil
+}
+
+func (c *APIClient) ParseTuicNodeResponse(nodeInfoResponse *NodeInfoResponse) (*api.NodeInfo, error) {
+	port, err := c.parseNodePort(nodeInfoResponse)
+	if err != nil {
+		return nil, err
+	}
+	var speedLimit uint64
+	if c.SpeedLimit > 0 {
+		speedLimit = uint64((c.SpeedLimit * 1000000) / 8)
+	} else {
+		speedLimit = uint64((nodeInfoResponse.SpeedLimit * 1000000) / 8)
+	}
+	return &api.NodeInfo{NodeType: "Tuic", NodeID: c.NodeID, Port: port, SpeedLimit: speedLimit, TransportProtocol: "udp", TuicConfig: &api.TuicConfig{}}, nil
+}
+
+func (c *APIClient) ParseAnyTLSNodeResponse(nodeInfoResponse *NodeInfoResponse) (*api.NodeInfo, error) {
+	port, err := c.parseNodePort(nodeInfoResponse)
+	if err != nil {
+		return nil, err
+	}
+	var speedLimit uint64
+	if c.SpeedLimit > 0 {
+		speedLimit = uint64((c.SpeedLimit * 1000000) / 8)
+	} else {
+		speedLimit = uint64((nodeInfoResponse.SpeedLimit * 1000000) / 8)
+	}
+	return &api.NodeInfo{NodeType: "AnyTLS", NodeID: c.NodeID, Port: port, SpeedLimit: speedLimit, TransportProtocol: "tcp", AnyTLSConfig: &api.AnyTLSConfig{}}, nil
 }
 
 // ParseUserListResponse parse the response for the given node info format
