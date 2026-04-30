@@ -2,7 +2,9 @@ package hysteria2
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/apernet/hysteria/core/v2/server"
@@ -318,9 +320,12 @@ func (h *Hysteria2Service) userMonitor() error {
 			h.restoreTraffic(snapshot)
 		}
 	}
-	if len(onlineUsers) > 0 {
+	shouldReportEmpty := strings.Contains(fmt.Sprintf("%T", h.apiClient), "sspanel.APIClient")
+	if len(onlineUsers) > 0 || shouldReportEmpty {
 		if err = h.apiClient.ReportNodeOnlineUsers(&onlineUsers); err != nil {
 			h.logger.Print(err)
+		} else if len(onlineUsers) == 0 && shouldReportEmpty {
+			h.logger.Debug("Report empty aliveip list to SSPanel for offline cleanup")
 		}
 	}
 
