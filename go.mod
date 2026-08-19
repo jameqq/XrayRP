@@ -4,30 +4,30 @@ go 1.26.1
 
 require (
 	dario.cat/mergo v1.0.2
-	github.com/apernet/hysteria/core/v2 v2.8.1
-	github.com/apernet/hysteria/extras/v2 v2.8.1
+	github.com/apernet/hysteria/core/v2 v2.9.2
+	github.com/apernet/hysteria/extras/v2 v2.9.1
 	github.com/bitly/go-simplejson v0.5.1
 	github.com/eko/gocache/lib/v4 v4.2.3
-	github.com/eko/gocache/store/go_cache/v4 v4.2.4
+	github.com/eko/gocache/store/go_cache/v4 v4.2.5
 	github.com/eko/gocache/store/redis/v4 v4.2.6
-	github.com/fsnotify/fsnotify v1.9.0
-	github.com/go-acme/lego/v4 v4.34.0
+	github.com/fsnotify/fsnotify v1.10.1
+	github.com/go-acme/lego/v4 v4.35.2
 	github.com/go-resty/resty/v2 v2.17.2
-	github.com/gogf/gf/v2 v2.10.0
+	github.com/gogf/gf/v2 v2.10.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/r3labs/diff/v2 v2.15.1
-	github.com/redis/go-redis/v9 v9.18.0
-	github.com/sagernet/sing v0.8.4
-	github.com/sagernet/sing-box v1.13.8
+	github.com/redis/go-redis/v9 v9.20.0
+	github.com/sagernet/sing v0.8.10
+	github.com/sagernet/sing-box v1.13.12
 	github.com/sagernet/sing-shadowsocks v0.2.9
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	github.com/xtls/xray-core v1.260327.0
-	golang.org/x/crypto v0.50.0
-	golang.org/x/net v0.53.0
+	github.com/xtls/xray-core v1.260327.1-0.20260728075948-5ca6f4b7d4dc
+	golang.org/x/crypto v0.52.0
+	golang.org/x/net v0.55.0
 	golang.org/x/time v0.15.0
 	google.golang.org/protobuf v1.36.11
 )
