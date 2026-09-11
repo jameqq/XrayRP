@@ -1,35 +1,35 @@
 module github.com/Mtoly/XrayRP
 
-go 1.26.1
+go 1.27
 
 require (
 	dario.cat/mergo v1.0.2
-	github.com/apernet/hysteria/core/v2 v2.8.1
-	github.com/apernet/hysteria/extras/v2 v2.8.1
+	github.com/apernet/hysteria/core/v2 v2.9.2
+	github.com/apernet/hysteria/extras/v2 v2.9.1
 	github.com/bitly/go-simplejson v0.5.1
 	github.com/eko/gocache/lib/v4 v4.2.3
-	github.com/eko/gocache/store/go_cache/v4 v4.2.4
+	github.com/eko/gocache/store/go_cache/v4 v4.2.5
 	github.com/eko/gocache/store/redis/v4 v4.2.6
-	github.com/fsnotify/fsnotify v1.9.0
-	github.com/go-acme/lego/v4 v4.34.0
+	github.com/fsnotify/fsnotify v1.10.1
+	github.com/go-acme/lego/v4 v4.35.2
 	github.com/go-resty/resty/v2 v2.17.2
-	github.com/gogf/gf/v2 v2.10.0
+	github.com/gogf/gf/v2 v2.10.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/r3labs/diff/v2 v2.15.1
-	github.com/redis/go-redis/v9 v9.18.0
-	github.com/sagernet/sing v0.8.4
-	github.com/sagernet/sing-box v1.13.8
+	github.com/redis/go-redis/v9 v9.20.0
+	github.com/sagernet/sing v0.8.10
+	github.com/sagernet/sing-box v1.13.12
 	github.com/sagernet/sing-shadowsocks v0.2.9
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	github.com/xtls/xray-core v1.260327.0
-	golang.org/x/crypto v0.50.0
-	golang.org/x/net v0.53.0
+	github.com/xtls/xray-core v1.260327.1-0.20260908222543-52a412d9e2f5
+	golang.org/x/crypto v0.55.0
+	golang.org/x/net v0.58.0
 	golang.org/x/time v0.15.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
@@ -69,7 +69,7 @@ require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/anthropics/anthropic-sdk-go v1.26.0 // indirect
 	github.com/anytls/sing-anytls v0.0.11 // indirect
-	github.com/apernet/quic-go v0.59.1-0.20260330051153-c402ee641eb6 // indirect
+	github.com/apernet/quic-go v0.61.1-0.20260806010916-184d081eef3e // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.5 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.32.14 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.14 // indirect
@@ -355,7 +355,7 @@ require (
 	github.com/volcengine/volc-sdk-golang v1.0.241 // indirect
 	github.com/vultr/govultr/v3 v3.30.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	github.com/xtls/reality v0.0.0-20260322125925-9234c772ba8f // indirect
+	github.com/xtls/reality v0.0.0-20260908062103-8cdf7bf9c7f0 // indirect
 	github.com/yandex-cloud/go-genproto v0.71.0 // indirect
 	github.com/yandex-cloud/go-sdk/services/dns v0.0.52 // indirect
 	github.com/yandex-cloud/go-sdk/v2 v2.88.0 // indirect
@@ -381,8 +381,8 @@ require (
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
@@ -393,7 +393,7 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401024825-9d38bb4040a9 // indirect
-	google.golang.org/grpc v1.80.0 // indirect
+	google.golang.org/grpc v1.83.2 // indirect
 	gopkg.in/ini.v1 v1.67.1 // indirect
 	gopkg.in/ns1/ns1-go.v2 v2.17.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
