@@ -312,7 +312,7 @@ func (s *AnyTLSService) userMonitor() error {
 			if err.Error() != api.RuleNotModified {
 				s.logger.Printf("Get rule list filed: %s", err)
 			}
-		} else if len(*ruleList) > 0 {
+		} else if ruleList != nil {
 			if err := s.rules.UpdateRule(s.tag, *ruleList); err != nil {
 				s.logger.Print(err)
 			}
@@ -410,4 +410,27 @@ func determineRate(nodeLimit, userLimit uint64) (limit uint64) {
 		return nodeLimit
 	}
 	return nodeLimit
+}
+
+func (s *AnyTLSService) updateOnlineIPSimple(uuid, host string) {
+	if host == "" || uuid == "" {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Re-add IP to onlineIPs (in case it was cleared by collectUsage)
+	if ipSet, exists := s.onlineIPs[uuid]; exists {
+		ipSet[host] = struct{}{}
+	} else {
+		s.onlineIPs[uuid] = map[string]struct{}{host: {}}
+	}
+
+	// Update last active time
+	if activeMap, exists := s.ipLastActive[uuid]; exists {
+		activeMap[host] = time.Now()
+	} else {
+		s.ipLastActive[uuid] = map[string]time.Time{host: time.Now()}
+	}
 }

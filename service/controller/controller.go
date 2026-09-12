@@ -147,7 +147,7 @@ func (c *Controller) Start() error {
 	if !c.config.DisableGetRule {
 		if ruleList, err := c.apiClient.GetNodeRule(); err != nil {
 			c.logger.Printf("Get rule list filed: %s", err)
-		} else if len(*ruleList) > 0 {
+		} else if ruleList != nil {
 			if err := c.UpdateRule(c.Tag, *ruleList); err != nil {
 				c.logger.Print(err)
 			}
@@ -289,7 +289,7 @@ func (c *Controller) nodeInfoMonitor() (err error) {
 			if err.Error() != api.RuleNotModified {
 				c.logger.Printf("Get rule list filed: %s", err)
 			}
-		} else if len(*ruleList) > 0 {
+		} else if ruleList != nil {
 			if err := c.UpdateRule(c.Tag, *ruleList); err != nil {
 				c.logger.Print(err)
 			}

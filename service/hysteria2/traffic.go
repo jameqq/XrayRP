@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	ratelimit "github.com/Mtoly/XrayRP/common/limiter"
 	"github.com/apernet/hysteria/core/v2/server"
 	"golang.org/x/time/rate"
 
@@ -63,7 +64,7 @@ func (t *hyTrafficLogger) LogTraffic(id string, tx, rx uint64) bool {
 	if limiter != nil {
 		total := int(tx + rx)
 		if total > 0 {
-			_ = limiter.WaitN(context.Background(), total)
+			_ = ratelimit.WaitN(context.Background(), limiter, total)
 		}
 	}
 
@@ -300,7 +301,7 @@ func (h *Hysteria2Service) userMonitor() error {
 			if err.Error() != api.RuleNotModified {
 				h.logger.Printf("Get rule list filed: %s", err)
 			}
-		} else if len(*ruleList) > 0 {
+		} else if ruleList != nil {
 			if err := h.rules.UpdateRule(h.tag, *ruleList); err != nil {
 				h.logger.Print(err)
 			}

@@ -78,7 +78,7 @@ func (s *TuicService) Start() error {
 	if !s.config.DisableGetRule && s.rules != nil {
 		if ruleList, err := s.apiClient.GetNodeRule(); err != nil {
 			s.logger.Printf("Get rule list filed: %s", err)
-		} else if len(*ruleList) > 0 {
+		} else if ruleList != nil {
 			if err := s.rules.UpdateRule(s.tag, *ruleList); err != nil {
 				s.logger.Print(err)
 			}

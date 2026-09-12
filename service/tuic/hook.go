@@ -6,8 +6,11 @@ import (
 	"io"
 	"net"
 
+	ratelimit "github.com/Mtoly/XrayRP/common/limiter"
 	"github.com/sagernet/sing-box/adapter"
 	tun "github.com/sagernet/sing-tun"
+	"github.com/sagernet/sing/common/buf"
+	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
@@ -32,7 +35,7 @@ func (c *connCounter) Read(p []byte) (int, error) {
 		// This ensures active connections are tracked even after collectUsage() clears the maps
 		c.svc.updateOnlineIP(c.user, c.Conn.RemoteAddr())
 		if c.limiter != nil {
-			_ = c.limiter.WaitN(context.Background(), n)
+			_ = ratelimit.WaitN(context.Background(), c.limiter, n)
 		}
 	}
 	return n, err
@@ -49,7 +52,7 @@ func (c *connCounter) Write(p []byte) (int, error) {
 		// This ensures active connections are tracked even after collectUsage() clears the maps
 		c.svc.updateOnlineIP(c.user, c.Conn.RemoteAddr())
 		if c.limiter != nil {
-			_ = c.limiter.WaitN(context.Background(), n)
+			_ = ratelimit.WaitN(context.Background(), c.limiter, n)
 		}
 	}
 	return n, err
@@ -93,6 +96,32 @@ type packetConnCounter struct {
 	user    string
 	host    string
 	blocked bool
+}
+
+func (c *packetConnCounter) ReadPacket(buffer *buf.Buffer) (M.Socksaddr, error) {
+	if c.blocked {
+		return M.Socksaddr{}, io.EOF
+	}
+	destination, err := c.PacketConn.ReadPacket(buffer)
+	if err == nil && c.svc != nil {
+		c.svc.addTraffic(c.user, int64(buffer.Len()), 0)
+		c.svc.updateOnlineIPSimple(c.user, c.host)
+	}
+	return destination, err
+}
+
+func (c *packetConnCounter) WritePacket(buffer *buf.Buffer, destination M.Socksaddr) error {
+	if c.blocked {
+		buffer.Release()
+		return io.EOF
+	}
+	n := buffer.Len()
+	err := c.PacketConn.WritePacket(buffer, destination)
+	if err == nil && c.svc != nil {
+		c.svc.addTraffic(c.user, 0, int64(n))
+		c.svc.updateOnlineIPSimple(c.user, c.host)
+	}
+	return err
 }
 
 func (c *packetConnCounter) Close() error {

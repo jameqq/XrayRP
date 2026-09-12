@@ -50,7 +50,7 @@ func (w *Writer) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	// Slow path: wait for tokens with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), rateWaitTimeout)
 	defer cancel()
-	if err := w.limiter.WaitN(ctx, n); err != nil {
+	if err := WaitN(ctx, w.limiter, n); err != nil {
 		buf.ReleaseMulti(mb)
 		return err
 	}
@@ -69,7 +69,7 @@ func (r *Reader) ReadMultiBuffer() (buf.MultiBuffer, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), rateWaitTimeout)
 	defer cancel()
-	if err := r.limiter.WaitN(ctx, n); err != nil {
+	if err := WaitN(ctx, r.limiter, n); err != nil {
 		buf.ReleaseMulti(mb)
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (r *Reader) ReadMultiBufferTimeout(timeout time.Duration) (buf.MultiBuffer,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), rateWaitTimeout)
 	defer cancel()
-	if err := r.limiter.WaitN(ctx, n); err != nil {
+	if err := WaitN(ctx, r.limiter, n); err != nil {
 		buf.ReleaseMulti(mb)
 		return nil, err
 	}

@@ -333,7 +333,7 @@ func (s *TuicService) userMonitor() error {
 			if err.Error() != api.RuleNotModified {
 				s.logger.Printf("Get rule list filed: %s", err)
 			}
-		} else if len(*ruleList) > 0 {
+		} else if ruleList != nil {
 			if err := s.rules.UpdateRule(s.tag, *ruleList); err != nil {
 				s.logger.Print(err)
 			}

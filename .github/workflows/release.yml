@@ -22,7 +22,23 @@ on:
 
 jobs:
 
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go mod download
+      - run: go mod verify
+      - run: go vet -tags with_quic ./...
+      - name: Run offline regression tests
+        run: go test -tags with_quic ./... -run '^(TestPacketTraffic|TestWait.*|TestStatsWriter|TestBuild.*|TestClearRules)$' -timeout 120s
+
   build:
+    needs: verify
     strategy:
       matrix:
         # Include amd64 on all platforms.
@@ -97,6 +113,7 @@ jobs:
       GOARCH: ${{ matrix.goarch }}
       GOARM: ${{ matrix.goarm }}
       CGO_ENABLED: 0
+      GOFLAGS: -mod=readonly
     steps:
       - name: Checkout codebase
         uses: actions/checkout@v5
