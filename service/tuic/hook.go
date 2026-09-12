@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/sagernet/sing-box/adapter"
+	tun "github.com/sagernet/sing-tun"
 	N "github.com/sagernet/sing/common/network"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
@@ -282,4 +283,9 @@ func (t *tuicTracker) RoutedPacketConnection(_ context.Context, conn N.PacketCon
 	}
 
 	return &packetConnCounter{PacketConn: conn, svc: t.svc, user: m.User, host: host}
+}
+
+// RoutedFlow handles TUN flows; this service uses connection and packet tracking.
+func (t *tuicTracker) RoutedFlow(_ context.Context, _ adapter.InboundContext, _ adapter.Rule, _ adapter.Outbound) tun.FlowTracker {
+	return nil
 }
