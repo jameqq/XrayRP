@@ -35,7 +35,7 @@ jobs:
       - run: go mod verify
       - run: go vet -tags with_quic ./...
       - name: Run offline regression tests
-        run: go test -tags with_quic ./... -run '^(TestPacketTraffic|TestWait.*|TestStatsWriter|TestBuild.*|TestClearRules)$' -timeout 120s
+        run: go test -tags with_quic ./... -run '^(TestPacketTraffic|TestWait.*|TestStatsWriter|TestBuild.*|TestClearRules|TestFromBuildInfo|TestReplacementVersionWins)$' -timeout 120s
 
   build:
     needs: verify

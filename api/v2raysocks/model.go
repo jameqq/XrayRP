@@ -7,11 +7,14 @@ type UserTraffic struct {
 }
 
 type NodeStatus struct {
-	CPU    string `json:"cpu"`
-	Mem    string `json:"mem"`
-	Net    string `json:"net"`
-	Disk   string `json:"disk"`
-	Uptime int    `json:"uptime"`
+	CPU             string `json:"cpu"`
+	Mem             string `json:"mem"`
+	Net             string `json:"net"`
+	Disk            string `json:"disk"`
+	Uptime          int    `json:"uptime"`
+	XrayVersion     string `json:"xray_version,omitempty"`
+	HysteriaVersion string `json:"hysteria_version,omitempty"`
+	SingBoxVersion  string `json:"singbox_version,omitempty"`
 }
 
 type NodeOnline struct {

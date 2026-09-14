@@ -20,6 +20,7 @@ import (
 
 	"github.com/Mtoly/XrayRP/api"
 	"github.com/Mtoly/XrayRP/common"
+	"github.com/Mtoly/XrayRP/common/versioninfo"
 )
 
 // APIClient create an api client to the panel.
@@ -336,11 +337,15 @@ func (c *APIClient) GetNodeRule() (*[]api.DetectRule, error) {
 
 // ReportNodeStatus implements the API interface
 func (c *APIClient) ReportNodeStatus(nodeStatus *api.NodeStatus) (err error) {
+	versions := versioninfo.Current()
 	systemload := NodeStatus{
-		Uptime: int(nodeStatus.Uptime),
-		CPU:    fmt.Sprintf("%d%%", int(nodeStatus.CPU)),
-		Mem:    fmt.Sprintf("%d%%", int(nodeStatus.Mem)),
-		Disk:   fmt.Sprintf("%d%%", int(nodeStatus.Disk)),
+		Uptime:          int(nodeStatus.Uptime),
+		CPU:             fmt.Sprintf("%d%%", int(nodeStatus.CPU)),
+		Mem:             fmt.Sprintf("%d%%", int(nodeStatus.Mem)),
+		Disk:            fmt.Sprintf("%d%%", int(nodeStatus.Disk)),
+		XrayVersion:     versions.XrayCore,
+		HysteriaVersion: versions.Hysteria,
+		SingBoxVersion:  versions.SingBox,
 	}
 
 	res, err := c.client.R().
