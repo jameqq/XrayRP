@@ -1,10 +1,13 @@
 # Build go
-FROM golang:1.27.1-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS builder
 WORKDIR /app
 COPY . .
 ENV CGO_ENABLED=0
 RUN go mod download
-RUN go build -v -o XrayR -tags with_quic -trimpath -ldflags "-s -w -buildid="
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH GOARM=${TARGETVARIANT#v} go build -p 2 -v -o XrayR -tags with_quic -trimpath -ldflags "-s -w -buildid="
 
 # Release
 FROM  alpine
