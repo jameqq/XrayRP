@@ -48,8 +48,9 @@ func (c *Controller) buildVlessUser(userInfo *[]api.UserInfo) (users []*protocol
 	flow := strings.TrimSpace(c.nodeInfo.VlessFlow)
 	if flow != "" {
 		transport := strings.ToLower(strings.TrimSpace(c.nodeInfo.TransportProtocol))
-		// XTLS Vision is only valid on direct TLS/REALITY over TCP.
-		if transport != "tcp" || (!c.nodeInfo.EnableTLS && !c.nodeInfo.EnableREALITY) || c.nodeInfo.Header != nil {
+		decryption := strings.TrimSpace(c.config.VlessDecryption)
+		// VLESS Encryption also supports Vision on non-TCP transports.
+		if (decryption == "" || decryption == "none") && (transport != "tcp" || (!c.nodeInfo.EnableTLS && !c.nodeInfo.EnableREALITY) || c.nodeInfo.Header != nil) {
 			flow = ""
 		}
 	}

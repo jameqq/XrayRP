@@ -6,6 +6,7 @@ import (
 )
 
 type Config struct {
+	VlessDecryption           string                           `mapstructure:"VlessDecryption"`
 	ListenIP                  string                           `mapstructure:"ListenIP"`
 	SendIP                    string                           `mapstructure:"SendIP"`
 	UpdatePeriodic            int                              `mapstructure:"UpdatePeriodic"`

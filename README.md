@@ -38,6 +38,35 @@ A Xray backend framework that can easily support many panels.
 
 ## 功能介绍
 
+### XHTTP + VLESS Encryption + Vision
+
+在对应节点的 `ControllerConfig` 下设置 `VlessDecryption`，值为 `xray vlessenc`
+生成的服务端 `decryption` 字符串。省略、空字符串或 `"none"` 保持原来的无协议层加密行为。
+启用 VLESS Encryption 后，XHTTP 等非 TCP 传输也可以保留 Vision：
+
+```yaml
+Nodes:
+  - PanelType: "SSPanel"
+    ApiConfig:
+      # 保留现有 ApiHost、ApiKey、NodeID 等设置
+      NodeType: V2ray
+      EnableVless: true
+      VlessFlow: "xtls-rprx-vision"
+    ControllerConfig:
+      # 替换成配套的服务端值；私钥不要放进订阅
+      VlessDecryption: "mlkem768x25519plus.native.600s.<PRIVATE_KEY>"
+      EnableFallback: false
+      # 保留现有 ListenIP、REALITYConfigs 等设置
+```
+
+面板仍需配置 XHTTP 传输，客户端需要配套的 `encryption` 字符串及
+`flow: xtls-rprx-vision`，并使用支持此组合的 Xray 核心。
+`VlessDecryption` 不替代 REALITY 密钥，也不会自动修改面板订阅。
+VLESS Encryption 不能与 VLESS fallback 同时启用；非法参数由 Xray 核心拒绝。
+
+参考：[VLESS 入站配置](https://xtls.github.io/config/inbounds/vless.html)、
+[VLESS 出站配置](https://xtls.github.io/config/outbounds/vless.html)。
+
 | 功能        | v2ray | trojan | shadowsocks |
 |-----------|-------|--------|-------------|
 | 获取节点信息    | √     | √      | √           |
