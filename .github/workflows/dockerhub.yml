@@ -10,14 +10,37 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Go for binary metadata verification
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.1"
+          cache: false
       - name: Install Skopeo
         run: sudo apt-get update && sudo apt-get install -y skopeo
+      - name: Verify new image and embedded core versions
+        run: |
+          image=ghcr.io/jameqq/xrayrp:20261004
+          docker pull "$image"
+          container=$(docker create "$image")
+          docker cp "$container:/usr/local/bin/XrayR" /tmp/XrayR
+          docker rm "$container"
+          go version -m /tmp/XrayR | tee /tmp/xrayrp-buildinfo
+          grep -F 'v1.260327.1-0.20260930074004-b26a91de4f32' /tmp/xrayrp-buildinfo
+          grep -F 'github.com/sagernet/sing-box' /tmp/xrayrp-buildinfo | grep -F 'v1.14.2'
+          grep -F 'github.com/apernet/hysteria/core/v2' /tmp/xrayrp-buildinfo | grep -F 'v2.12.3'
+          docker run --rm --entrypoint XrayR "$image" version
       - name: Copy verified multi-architecture image to Docker Hub
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           printf '%s' "$DOCKERHUB_TOKEN" | skopeo login --username "$DOCKERHUB_USERNAME" --password-stdin docker.io
-          skopeo copy --all \
-            docker://ghcr.io/jameqq/xrayrp:V.9.9.19 \
-            docker://docker.io/jamqi20/xray2023:20260923
+          for tag in 20261004 latest; do
+            skopeo copy --all --preserve-digests \
+              docker://ghcr.io/jameqq/xrayrp:20261004 \
+              "docker://docker.io/jamqi20/xray2023:$tag"
+            source_digest=$(skopeo inspect --format '{{.Digest}}' docker://ghcr.io/jameqq/xrayrp:20261004)
+            target_digest=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/jamqi20/xray2023:$tag")
+            test "$source_digest" = "$target_digest"
+          done
+          skopeo inspect --raw docker://docker.io/jamqi20/xray2023:20261004 | jq '.manifests[].platform'
