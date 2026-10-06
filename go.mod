@@ -437,5 +437,5 @@ require (
 	zombiezen.com/go/capnproto2 v2.18.2+incompatible // indirect
 )
 
-// Keep REALITY's embedded buffers compatible with Xray's Vision reader.
-replace github.com/xtls/reality => github.com/xtls/reality v0.0.0-20260908062103-8cdf7bf9c7f0
+// Preserve classical REALITY handshakes and the embedded buffers used by Vision.
+replace github.com/xtls/reality => github.com/xtls/reality v0.0.0-20260908045812-e1986a4d31ca
