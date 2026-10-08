@@ -19,13 +19,14 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y skopeo
       - name: Verify new image and embedded core versions
         run: |
-          image=ghcr.io/jameqq/xrayrp:20261004
+          image=ghcr.io/jameqq/xrayrp:V.9.10.5
           docker pull "$image"
           container=$(docker create "$image")
           docker cp "$container:/usr/local/bin/XrayR" /tmp/XrayR
           docker rm "$container"
           go version -m /tmp/XrayR | tee /tmp/xrayrp-buildinfo
           grep -F 'v1.260327.1-0.20260930074004-b26a91de4f32' /tmp/xrayrp-buildinfo
+          grep -F 'v0.0.0-20260908045812-e1986a4d31ca' /tmp/xrayrp-buildinfo
           grep -F 'github.com/sagernet/sing-box' /tmp/xrayrp-buildinfo | grep -F 'v1.14.2'
           grep -F 'github.com/apernet/hysteria/core/v2' /tmp/xrayrp-buildinfo | grep -F 'v2.12.3'
           docker run --rm --entrypoint XrayR "$image" version
@@ -35,12 +36,12 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           printf '%s' "$DOCKERHUB_TOKEN" | skopeo login --username "$DOCKERHUB_USERNAME" --password-stdin docker.io
-          for tag in 20261004 latest; do
+          for tag in V.9.10.5 latest; do
             skopeo copy --all --preserve-digests \
-              docker://ghcr.io/jameqq/xrayrp:20261004 \
+              docker://ghcr.io/jameqq/xrayrp:V.9.10.5 \
               "docker://docker.io/jamqi20/xray2023:$tag"
-            source_digest=$(skopeo inspect --format '{{.Digest}}' docker://ghcr.io/jameqq/xrayrp:20261004)
+            source_digest=$(skopeo inspect --format '{{.Digest}}' docker://ghcr.io/jameqq/xrayrp:V.9.10.5)
             target_digest=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/jamqi20/xray2023:$tag")
             test "$source_digest" = "$target_digest"
           done
-          skopeo inspect --raw docker://docker.io/jamqi20/xray2023:20261004 | jq '.manifests[].platform'
+          skopeo inspect --raw docker://docker.io/jamqi20/xray2023:V.9.10.5 | jq '.manifests[].platform'
