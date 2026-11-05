@@ -16,8 +16,8 @@ import (
 	xreality "github.com/xtls/xray-core/transport/internet/reality"
 )
 
-// Updating the core must not silently reject valid, classical X25519 REALITY
-// clients. Exercise actual authentication against a local TLS camouflage target.
+// Exercise current REALITY authentication against a local TLS camouflage target.
+// Upstream now requires X25519MLKEM768 before the optional classical X25519 key.
 func TestVlessRealityHandshakeCompatibility(t *testing.T) {
 	target := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	target.EnableHTTP2 = true
@@ -39,11 +39,12 @@ func TestVlessRealityHandshakeCompatibility(t *testing.T) {
 	shortID := [8]byte{1, 2, 3, 4}
 	for _, tc := range []struct {
 		name, fingerprint string
+		shouldVerify      bool
 		wrongKey          bool
 	}{
-		{"classical", "hellochrome_106_shuffle", false},
-		{"hybrid", "chrome", false},
-		{"wrong_key", "hellochrome_106_shuffle", true},
+		{"classical_rejected", "hellochrome_106_shuffle", false, false},
+		{"hybrid", "chrome", true, false},
+		{"wrong_key", "chrome", false, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -66,7 +67,7 @@ func TestVlessRealityHandshakeCompatibility(t *testing.T) {
 					DialContext: (&net.Dialer{}).DialContext,
 					Type:        "tcp", Dest: target.Listener.Addr().String(),
 					ServerNames: map[string]bool{"example.com": true},
-					PrivateKey:  key.Bytes(), ShortIds: map[[8]byte]bool{shortID: true},
+					PrivateKey:  key, ShortIds: map[[8]byte]bool{shortID: true},
 				})
 				if secured != nil {
 					secured.Close()
@@ -91,12 +92,12 @@ func TestVlessRealityHandshakeCompatibility(t *testing.T) {
 				ServerName: "example.com", Fingerprint: tc.fingerprint,
 				PublicKey: publicKey, ShortId: shortID[:],
 			}, ctx, xnet.TCPDestination(xnet.DomainAddress("example.com"), 443))
-			if tc.wrongKey {
+			if !tc.shouldVerify {
 				if secured != nil {
 					defer secured.Close()
 				}
 				if err == nil && secured.(*xreality.UConn).Verified {
-					t.Fatal("REALITY accepted an incorrect public key")
+					t.Fatal("REALITY unexpectedly authenticated the client")
 				}
 				return
 			}
