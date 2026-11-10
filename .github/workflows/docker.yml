@@ -5,7 +5,7 @@ on:
       tag:
         description: Image tag
         required: true
-        default: "20261004"
+        default: "20261110"
   release:
     types:
       - published

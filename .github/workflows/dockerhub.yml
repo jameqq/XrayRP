@@ -6,7 +6,7 @@ on:
       tag:
         description: Image tag
         required: true
-        default: "20261105"
+        default: "20261110"
 
 permissions:
   contents: read
@@ -32,10 +32,10 @@ jobs:
           docker cp "$container:/usr/local/bin/XrayR" /tmp/XrayR
           docker rm "$container"
           go version -m /tmp/XrayR | tee /tmp/xrayrp-buildinfo
-          grep -F 'v1.260327.1-0.20261031132019-a4a3dff5b20c' /tmp/xrayrp-buildinfo
-          grep -F 'v0.0.0-20261014101318-83f621788ca8' /tmp/xrayrp-buildinfo
-          grep -F 'github.com/sagernet/sing-box' /tmp/xrayrp-buildinfo | grep -F 'v1.14.2'
-          grep -F 'github.com/apernet/hysteria/core/v2' /tmp/xrayrp-buildinfo | grep -F 'v2.12.3'
+          grep -F 'v1.260327.1-0.20261109052709-676eaf66f8f0' /tmp/xrayrp-buildinfo
+          grep -F 'v0.0.0-20261108101329-4bb46b2afd8b' /tmp/xrayrp-buildinfo
+          grep -F 'github.com/sagernet/sing-box' /tmp/xrayrp-buildinfo | grep -F 'v1.14.4'
+          grep -F 'github.com/apernet/hysteria/core/v2' /tmp/xrayrp-buildinfo | grep -F 'v2.13.0'
           docker run --rm --entrypoint XrayR "$image" version
       - name: Copy verified multi-architecture image to Docker Hub
         env:
