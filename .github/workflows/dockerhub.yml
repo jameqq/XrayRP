@@ -7,6 +7,11 @@ on:
         description: Image tag
         required: true
         default: "20261110"
+      update_latest:
+        description: Also update the latest tag
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -42,12 +47,19 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           IMAGE_TAG: ${{ inputs.tag }}
+          UPDATE_LATEST: ${{ inputs.update_latest }}
         run: |
           printf '%s' "$DOCKERHUB_TOKEN" | skopeo login --username "$DOCKERHUB_USERNAME" --password-stdin docker.io
-          skopeo copy --all --preserve-digests \
-            "docker://ghcr.io/jameqq/xrayrp:$IMAGE_TAG" \
-            "docker://docker.io/jamqi20/xray2023:$IMAGE_TAG"
           source_digest=$(skopeo inspect --format '{{.Digest}}' "docker://ghcr.io/jameqq/xrayrp:$IMAGE_TAG")
-          target_digest=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/jamqi20/xray2023:$IMAGE_TAG")
-          test "$source_digest" = "$target_digest"
+          tags=("$IMAGE_TAG")
+          if [ "$UPDATE_LATEST" = "true" ]; then
+            tags+=(latest)
+          fi
+          for tag in "${tags[@]}"; do
+            skopeo copy --all --preserve-digests \
+              "docker://ghcr.io/jameqq/xrayrp:$IMAGE_TAG" \
+              "docker://docker.io/jamqi20/xray2023:$tag"
+            target_digest=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/jamqi20/xray2023:$tag")
+            test "$source_digest" = "$target_digest"
+          done
           skopeo inspect --raw "docker://docker.io/jamqi20/xray2023:$IMAGE_TAG" | jq '.manifests[].platform'
